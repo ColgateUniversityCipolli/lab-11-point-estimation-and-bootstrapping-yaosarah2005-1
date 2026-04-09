@@ -235,6 +235,54 @@ summary |>
 
 ## Simulation over various sample sizes
 Consider the effect of the sample size have on these results. Provide a graphical and numerical summary of what happens as $n$ increases -- say $n=20$, $n=50$, $n=100$, and $n=500$. Does the result in your initial simulation hold across samples? Or, do things change as the sample size changes? Ensure to set your randomization seed.
+
+**Solution**
+
+```{r}
+set.seed(7272)
+
+# Poisson
+
+N = c(20,50,100,200)
+P.S.result <- tibble(N20 = rep(NA, 1000),
+                 N50 = rep(NA, 1000),
+                 N100 = rep(NA, 1000),
+                 N200 = rep(NA, 1000))
+ 
+P.Sn.result <- tibble(N20 = rep(NA, 1000),
+                 N50 = rep(NA, 1000),
+                 N100 = rep(NA, 1000),
+                 N200 = rep(NA, 1000))
+for(j in 1:4){
+  n = N[j]
+  for(i in 1:1000){
+    X <- rpois(n, lambda = 2)
+    S <- var(X)
+    Sn <- (n-1)/n * S
+    P.S.result[[j]][i] <- S
+    P.Sn.result[[j]][i] <- Sn
+  }
+}
+
+P.S.results.summary <- P.S.result |>
+  pivot_longer(cols = everything(),names_to = "Estimator", values_to = "Estimate") |>
+  group_by(Estimator) |>
+  summarize(mean = mean(Estimate),
+            variance = var(Estimate)) |>
+  mutate(bias = mean-2,
+        precision = 1/variance,
+        mse = variance + bias^2)
+
+P.Sn.results.summary <- P.Sn.result |>
+  pivot_longer(cols = everything(),names_to = "Estimator", values_to = "Estimate") |>
+  group_by(Estimator) |>
+  summarize(mean = mean(Estimate),
+            variance = var(Estimate)) |>
+  mutate(bias = mean-2,
+        precision = 1/variance,
+        mse = variance + bias^2)
+```
+
  
 ## Simulation
 You have written code to draw a random sample of various sizes from each distribution, and to calculate and store the calculated estimates. Rework your code to produce a density plot of the $s_{n-1}^2$ and $s_{n}^2$. Do you have a guess about their distribution? Ensure to set your randomization seed. 
