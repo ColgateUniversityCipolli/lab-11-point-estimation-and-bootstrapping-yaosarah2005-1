@@ -98,12 +98,140 @@ For each distribution, write a loop that completes the following 1000 times. Put
 
 Start with $n=20$. Is there evidence that $S_{n-1}^2$ is a better estimator than $S_n^2$?
 
+
 Create a plot or combination of plots (using patchwork) to show the results across all four distributions. Make sure to create a corresponding table that numerically summarizes the results of the simulation. You should include
 \begin{align*}
 \textrm{Bias} &= \textrm{Average of Estimates} - \textrm{True Value}\\
 \textrm{Precision} &= \frac{1}{\textrm{Variance of Estimates}}\\
 \textrm{Mean Square Error} &= \textrm{Bias}^2 + \textrm{Variance of Estimates}.
 \end{align*}
+
+**Solution**
+```{r}
+set.seed(7272)
+
+# Poisson
+P.S.estimate = rep(NA, 1000)
+P.Sn.estimate = rep(NA, 1000)
+
+for(i in 1:1000){
+  X <- rpois(20, lambda = 2)
+  S <- var(X)
+  Sn <- 19/20 * var(X)
+  P.S.estimate[i] <- S
+  P.Sn.estimate[i] <- Sn
+}
+
+# Binomial
+B.S.estimate = rep(NA, 1000)
+B.Sn.estimate = rep(NA, 1000)
+P = (5 - (21^0.5))/10
+for(i in 1:1000){
+  X <- rbinom(20, 50, P)
+  S <- var(X)
+  Sn <- 19/20 * var(X)
+  B.S.estimate[i] <- S
+  B.Sn.estimate[i] <- Sn
+}
+
+# Normal
+N.S.estimate = rep(NA, 1000)
+N.Sn.estimate = rep(NA, 1000)
+
+for(i in 1:1000){
+  X <- rnorm(20, 0, (2^0.5))
+  S <- var(X)
+  Sn <- 19/20 * var(X)
+  N.S.estimate[i] <- S
+  N.Sn.estimate[i] <- Sn
+}
+
+# Exponential
+E.S.estimate = rep(NA, 1000)
+E.Sn.estimate = rep(NA, 1000)
+
+for(i in 1:1000){
+  X <- rexp(20, 1/(2^0.5))
+  S <- var(X)
+  Sn <- 19/20 * var(X)
+  E.S.estimate[i] <- S
+  E.Sn.estimate[i] <- Sn
+}
+
+results <- tibble(PoissonS = P.S.estimate,
+                 PoissonSn = P.Sn.estimate,
+                 BinomialS = B.S.estimate,
+                 BinomialSn = B.Sn.estimate,
+                 NormalS = N.S.estimate,
+                 NormalSn = N.Sn.estimate,
+                 ExponentialS = E.S.estimate,
+                 ExponentialSn = E.Sn.estimate)
+
+results.long <- results |>
+  pivot_longer(cols = everything(),names_to = "Estimator", values_to = "Estimate")
+
+summary <- results.long |>
+  group_by(Estimator) |>
+  summarize(mean = mean(Estimate),
+            variance = var(Estimate)) |>
+  mutate(bias = mean-2,
+        precision = 1/variance,
+        mse = variance + bias^2)
+
+Poisson <- results.long |>
+  filter(Estimator == "PoissonS" | Estimator == "PoissonSn")
+
+Poisson.plot <- ggplot(Poisson) +
+  stat_density(aes(x=Estimate, color=Estimator), geom="line", position = "jitter") +
+  geom_vline(xintercept=2, color="red", linetype="dotted")+
+  geom_hline(yintercept=0)+
+  theme_bw()+
+  labs(x=bquote(hat(S^2)), y="Density")
+
+Binomial <- results.long |>
+  filter(Estimator == "BinomialS" | Estimator == "BinomialSn")
+
+Binomial.plot <- ggplot(Binomial) +
+  stat_density(aes(x=Estimate, color=Estimator), geom="line", position = "jitter") +
+  geom_vline(xintercept=2, color="red", linetype="dotted")+
+  geom_hline(yintercept=0)+
+  theme_bw()+
+  labs(x=bquote(hat(S^2)), y="Density")
+
+Normal <- results.long |>
+  filter(Estimator == "NormalS" | Estimator == "NormalSn")
+
+Normal.plot <- ggplot(Normal) +
+  stat_density(aes(x=Estimate, color=Estimator), geom="line", position = "jitter") +
+  geom_vline(xintercept=2, color="red", linetype="dotted")+
+  geom_hline(yintercept=0)+
+  theme_bw()+
+  labs(x=bquote(hat(S^2)), y="Density")
+
+Exponential <- results.long |>
+  filter(Estimator == "ExponentialS" | Estimator == "ExponentialSn")
+
+Exponential.plot <- ggplot(Exponential) +
+  stat_density(aes(x=Estimate, color=Estimator), geom="line", position = "jitter") +
+  geom_vline(xintercept=2, color="red", linetype="dotted")+
+  geom_hline(yintercept=0)+
+  theme_bw()+
+  labs(x=bquote(hat(S^2)), y="Density")
+
+Poisson.plot 
+Binomial.plot
+Normal.plot 
+Exponential.plot
+```
+
+```{r}
+#| label: summary1
+#| tbl-cap: "Summary of the result of the simulation"
+#| tbl-align: "center"
+#| echo: false
+summary |>
+  knitr::kable(digits = 2)
+```
 
 ## Simulation over various sample sizes
 Consider the effect of the sample size have on these results. Provide a graphical and numerical summary of what happens as $n$ increases -- say $n=20$, $n=50$, $n=100$, and $n=500$. Does the result in your initial simulation hold across samples? Or, do things change as the sample size changes? Ensure to set your randomization seed.
